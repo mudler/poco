@@ -1,0 +1,99 @@
+---
+name: 'Build docker images'
+
+on:
+  push:
+    branches:
+      - master
+    tags:
+      - '*'
+
+jobs:
+  docker:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - tag: "kodi"
+            dockerfile: "examples/kodi"
+            platforms: "linux/amd64"
+            bundler_opts: "--entrypoint /usr/bin/kodi --app-store '$HOME/.poco/kodi' --app-mounts /home --app-mounts /etc --app-mounts /home --app-mounts /sys --app-mounts /tmp --app-mounts /run"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Install Go
+        uses: actions/setup-go@v2
+        with:
+            go-version: '^1.17'
+      - name: Build and install deps
+        run: |
+           CGO_ENABLED=0 go build
+           sudo cp -rf poco /usr/bin/
+      - name: Prepare
+        id: prep
+        run: |
+          DOCKER_IMAGE=quay.io/mudler/images
+          VERSION=latest
+          SHORTREF=${GITHUB_SHA::8}
+          # If this is git tag, use the tag name as a docker tag
+          if [[ $GITHUB_REF == refs/tags/* ]]; then
+            VERSION=${GITHUB_REF#refs/tags/}
+          fi
+          TAGS="${DOCKER_IMAGE}:${{ matrix.tag }}-${VERSION},${DOCKER_IMAGE}:${{ matrix.tag }}-${SHORTREF}"
+          # If the VERSION looks like a version number, assume that
+          # this is the most recent version of the image and also
+          # tag it 'latest'.
+          if [[ $VERSION =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$ ]]; then
+            TAGS="$TAGS,${DOCKER_IMAGE}:${{ matrix.tag }}-latest"
+          fi
+          # Set output parameters.
+          echo ::set-output name=tags::${TAGS}
+          echo ::set-output name=docker_image::${DOCKER_IMAGE}
+          echo ::set-output name=current::${DOCKER_IMAGE}:${{ matrix.tag }}-${SHORTREF}
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@master
+        with:
+          platforms: all
+
+      - name: Set up Docker Buildx
+        id: buildx
+        uses: docker/setup-buildx-action@master
+
+      - name: Login to DockerHub
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v1
+        with:
+          registry: quay.io
+          username: ${{ secrets.QUAY_USERNAME }}
+          password: ${{ secrets.QUAY_PASSWORD }}
+      - name: Build
+        uses: docker/build-push-action@v2
+        with:
+          builder: ${{ steps.buildx.outputs.name }}
+          context: ./${{ matrix.dockerfile }}
+          file: ./${{ matrix.dockerfile }}/Dockerfile
+          platforms: ${{ matrix.platforms }}
+          push: true
+          tags: ${{ steps.prep.outputs.tags }}
+      - name: Build bundle
+        env:
+          IMAGE: ${{ steps.prep.outputs.current }} 
+        run: |
+           mkdir build
+           CGO_ENABLED=0 poco bundle --image $IMAGE --output build/${{ matrix.tag }} ${{ matrix.bundler_opts }}
+           poco pack quay.io/mudler/images:${{ matrix.tag }}-bundle build/${{ matrix.tag }}
+           docker load -i output.tar
+           docker push quay.io/mudler/images:${{ matrix.tag }}-bundle
+      - name: Upload results
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{ matrix.tag }}-image
+          path: build
+          if-no-files-found: error
+      # - name: "Release"
+      #   if: startsWith(github.ref, 'refs/tags/')
+      #   uses: fnkr/github-action-ghr@v1
+      #   env:
+      #     GHR_COMPRESS: xz
+      #     GHR_PATH: build/
+      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
