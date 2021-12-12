@@ -215,9 +215,9 @@ During build sudo is required in order to preserve container permissions.
 
 ## :mag: Examples
 
-See the `examples` folder or [caramel](https://github.com/mocaccinoOS/caramel) for a more complete example.
+See the `examples` folder or [linuxbundles](https://github.com/mudler/linuxbundles) for a collection of popular distributions packaged or either [caramel](https://github.com/mocaccinoOS/caramel) for a more complete example involving popular apps.
 
-The pipeline builds the `kodi` image which can be downloaded and to run locally as a standard binary:
+The pipeline builds the `firefox` image which can be downloaded and to run locally as a standard binary:
 
 ```
 ./firefox
