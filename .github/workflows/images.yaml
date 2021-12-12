@@ -14,10 +14,10 @@ jobs:
     strategy:
       matrix:
         include:
-          - tag: "kodi"
-            dockerfile: "examples/kodi"
+          - tag: "firefox"
+            dockerfile: "examples/firefox"
             platforms: "linux/amd64"
-            bundler_opts: "--entrypoint /usr/bin/kodi --app-store '$HOME/.poco/kodi' --app-mounts /home --app-mounts /etc --app-mounts /home --app-mounts /sys --app-mounts /tmp --app-mounts /run"
+            bundler_opts: "--entrypoint /usr/bin/firefox --app-store '$HOME/.poco/firefox' --app-mounts /home --app-mounts /etc --app-mounts /home --app-mounts /sys --app-mounts /tmp --app-mounts /run"
     steps:
       - name: Checkout
         uses: actions/checkout@v2
