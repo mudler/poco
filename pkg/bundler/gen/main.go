@@ -197,10 +197,10 @@ func uninstall(c *cli.Context) error {
 func execute(c *cli.Context) error {
 	store := c.String("store")
 	store = filepath.Join(store, "bundle")
-	fmt.Println("Store at", store)
-	fmt.Println("Pid:", os.Getpid())
-	fmt.Println(mountProc(store))
-	//fmt.Println(mountDev(store))
+	fmt.Println("Starting {{.App.Name}} {{.App.Version}} with store at", store)
+	if err := mountProc(store); err != nil {
+		fmt.Println("failed mounting /proc")
+	}
 
 	for _, hostMount := range append(c.StringSlice("mounts"),c.StringSlice("add-mounts")...) {
 		target := hostMount
@@ -208,10 +208,8 @@ func execute(c *cli.Context) error {
 		if strings.Contains(hostMount, ":") {
 			dest := strings.Split(hostMount, ":")
 			if len(dest) == 3 {
-				fmt.Println("Mount with options")
 				if dest[0] == "ro" {
 					rw = false
-					fmt.Println("Set", hostMount, "to", dest[0])
 				}
 				hostMount = dest[1]
 				target = dest[2]
@@ -222,13 +220,15 @@ func execute(c *cli.Context) error {
 				return errors.New("Invalid arguments for mount, it can be: fullpath, or source:target")
 			}
 		}
-		fmt.Println("Mounting", hostMount, "to ", store, target)
+		fmt.Printf("Mounting %s to %s %s (rw: %t)\n", hostMount, store, target, rw)
 		if err := mountBind(hostMount, store, target, rw); err != nil {
 			return errors.Wrap(err, fmt.Sprintf("Failed mounting %s on rootfs", hostMount))
 		}
 	}
 
-	fmt.Println(pivotRoot(store))
+	if err := pivotRoot(store); err != nil {
+		fmt.Println("failed pivotroot at", store)
+	}
 
 	// Support ./binary - ....
 	args := c.Args()
@@ -236,7 +236,6 @@ func execute(c *cli.Context) error {
 		args = c.Args().Tail()
 	}
 
-	fmt.Println("Args", args)
 	cmd := exec.Command(c.String("entrypoint"), args...)
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
@@ -281,10 +280,10 @@ func start(c *cli.Context) error {
 	}
 
 	if version != "{{.App.Version}}" {
-		fmt.Println("Extracting bundle data into", store)
+		fmt.Printf("Extracting {{.App.Name}} {{.App.Version}} bundle data into %s ...\n", store)
 		os.RemoveAll(path.Join(store, "bundle"))
 		copyBinary(store)
-		ioutil.WriteFile(path.Join(store, "VERSION"), []byte("{{.App.Version}}"), os.ModePerm)
+		must(ioutil.WriteFile(path.Join(store, "VERSION"), []byte("{{.App.Version}}"), os.ModePerm))
 	}
 
 	var mounts []string
@@ -341,17 +340,9 @@ func start(c *cli.Context) error {
 
 func copyBinary(state string) {
 	f, err := assets.Open("assets.tar.xz")
-	if err != nil {
-		panic(err)
-	}
-	err = copyFileContents(f, filepath.Join(state, "assets.tar.xz"))
-	if err != nil {
-		panic(err)
-	}
-	err = archiver.Unarchive(filepath.Join(state, "assets.tar.xz"), filepath.Join(state, "bundle"))
-	if err != nil {
-		panic(err)
-	}
+	must(err)
+	must(copyFileContents(f, filepath.Join(state, "assets.tar.xz")))
+	must(archiver.Unarchive(filepath.Join(state, "assets.tar.xz"), filepath.Join(state, "bundle")))
 }
 
 func copyFileContents(in fs.File, dst string) (err error) {

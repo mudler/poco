@@ -164,9 +164,13 @@ Render golang generated files to the supplied dir
 				UsageText: "unpack <IMAGE> <DIR>",
 				Action: func(c *cli.Context) error {
 					k := cliParse(c)
-
-					pterm.Info.Println("Downloading", c.Args())
-					return k.DownloadImage(c.Args()[0], c.Args()[1], c.Bool("local"))
+					src := c.Args()[0]
+					dst := c.Args()[1]
+					pterm.Info.Printfln(
+						"Downloading image '%s' and unpacking into '%s' (local daemon: %t)",
+						src, dst, c.Bool("local"),
+					)
+					return k.DownloadImage(src, dst, c.Bool("local"))
 				},
 			},
 			{
@@ -254,6 +258,12 @@ $ docker push foo/image:tar ...
 
 					changeDir := c.String("C")
 
+					pterm.Info.Printfln(
+						"Creating '%s' from '%s'",
+						dst,
+						strings.Join(src, " "),
+					)
+
 					if path.Ext(dst) == "" {
 						dst = fmt.Sprintf("%s.tar.xz", dst)
 					} else {
@@ -308,8 +318,34 @@ It also associates to automatically mount /sys, /tmp and /run by default when st
 				`,
 				Action: func(c *cli.Context) error {
 					k := cliParse(c)
-					fmt.Println("Creating bundle for", c.String("image"), "with entrypoint", c.String("entrypoint"))
-					return k.Build(c.String("output"))
+					pterm.Info.Printfln(
+						"Creating bundle '%s' (version %s) from image '%s' with entrypoint '%s'",
+						c.String("app-name"),
+						c.String("app-version"),
+						c.String("image"),
+						c.String("entrypoint"),
+					)
+
+					mounts := c.StringSlice("app-mounts")
+					if len(mounts) > 0 {
+						pterm.Info.Printfln(
+							"with default mounts: %s", strings.Join(mounts, " "),
+						)
+					}
+
+					spin, spinnerErr := pterm.DefaultSpinner.Start(
+						"Bundle creation",
+					)
+
+					err := k.Build(c.String("output"))
+					if spinnerErr == nil {
+						if err != nil {
+							spin.Fail()
+						} else {
+							spin.Success()
+						}
+					}
+					return err
 				},
 			},
 		},
