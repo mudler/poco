@@ -316,7 +316,7 @@ Creates a portable binary 'kodi' from the 'kodi:latest' image available in the l
 It also associates to automatically mount /sys, /tmp and /run by default when starting and will unpack the binary content inside the user $HOME/.foo directory (be careful of the single quote).
 
 				`,
-				Action: func(c *cli.Context) error {
+				Action: func(c *cli.Context) (err error) {
 					k := cliParse(c)
 					pterm.Info.Printfln(
 						"Creating bundle '%s' (version %s) from image '%s' with entrypoint '%s'",
@@ -329,23 +329,11 @@ It also associates to automatically mount /sys, /tmp and /run by default when st
 					mounts := c.StringSlice("app-mounts")
 					if len(mounts) > 0 {
 						pterm.Info.Printfln(
-							"with default mounts: %s", strings.Join(mounts, " "),
+							"Default mounts: %s", strings.Join(mounts, " "),
 						)
 					}
 
-					spin, spinnerErr := pterm.DefaultSpinner.Start(
-						"Bundle creation",
-					)
-
-					err := k.Build(c.String("output"))
-					if spinnerErr == nil {
-						if err != nil {
-							spin.Fail()
-						} else {
-							spin.Success()
-						}
-					}
-					return err
+					return k.Build(c.String("output"))
 				},
 			},
 		},
