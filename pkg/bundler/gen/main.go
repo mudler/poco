@@ -156,13 +156,34 @@ func mountProc(newroot string) error {
 	return nil
 }
 
+func touch(f string) error {
+	_, err := os.Stat(f)
+	if os.IsNotExist(err) {
+		file, err := os.Create(f)
+		if err != nil {
+			return err
+		}
+		defer file.Close()
+	}
+	return nil
+}
+
 func mountBind(hostfolder, newroot, dst string, rw bool) error {
 	source := hostfolder
 	target := filepath.Join(newroot, dst)
 	fstype := "bind"
 	data := ""
 
-	os.MkdirAll(target, 0755)
+	f, err := os.Stat(hostfolder)
+	if err != nil {
+		return err
+	}
+	
+	if !f.IsDir() {
+		touch(target)
+	} else {
+		os.MkdirAll(target, 0755)
+	}
 
 	if rw {
 		if err := syscall.Mount(source, target, fstype, syscall.MS_BIND|syscall.MS_REC, data); err != nil {
