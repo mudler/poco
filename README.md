@@ -14,7 +14,7 @@
   </a>
   <a href="https://github.com/mudler/poco/issues"><img src="https://img.shields.io/github/issues/mudler/poco"></a>
   <img src="https://img.shields.io/badge/made%20with-Go-blue">
-  <img src="https://goreportcard.com/badge/github.com/mudler/poco" alt="go report card" />
+  <a href="https://goreportcard.com/report/github.com/mudler/poco" target=_blank><img src="https://goreportcard.com/badge/github.com/mudler/poco" alt="go report card" /></a>
 </p>
 
 <p align="center">
