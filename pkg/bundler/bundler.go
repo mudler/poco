@@ -25,6 +25,8 @@ import (
 	"github.com/pkg/errors"
 )
 
+// App is the structure holding the application metadata
+// All the fields are passed to the template rendering engine
 type App struct {
 	Name        string
 	Version     string
@@ -37,6 +39,7 @@ type App struct {
 	PocoVersion string
 }
 
+// bundleData is the parent structure which is used by the template
 type bundleData struct {
 	Image         string
 	LocalBuild    bool
@@ -44,11 +47,14 @@ type bundleData struct {
 	CommandPrefix string
 }
 
+// Bundler is the poCo application
+// bundler
 type Bundler struct {
 	stateDir   string
 	renderData bundleData
 }
 
+// WithStateDir sets the bundler application state directory
 func WithStateDir(s string) Option {
 	return func(k *Bundler) error {
 		k.stateDir = s
@@ -56,6 +62,7 @@ func WithStateDir(s string) Option {
 	}
 }
 
+// WithRenderData sets the data to be rendered when creating the application bundle
 func WithRenderData(image, commandprefix string, localbuild bool, a App) Option {
 	return func(k *Bundler) error {
 		k.renderData = bundleData{Image: image, LocalBuild: localbuild, CommandPrefix: commandprefix, App: a}
@@ -63,8 +70,10 @@ func WithRenderData(image, commandprefix string, localbuild bool, a App) Option 
 	}
 }
 
+// Option is a Bundler option
 type Option func(k *Bundler) error
 
+// New instantiate a new bundler with the given options
 func New(o ...Option) *Bundler {
 	k := &Bundler{}
 	for _, oo := range o {
@@ -72,6 +81,8 @@ func New(o ...Option) *Bundler {
 	}
 	return k
 }
+
+// Build creates a new binary located at dst
 func (k *Bundler) Build(dst string, args ...string) error {
 	tempdir, err := ioutil.TempDir("", "bundler")
 	if err != nil {
@@ -130,6 +141,7 @@ func (k *Bundler) goBuild(rendered string, binary string, args ...string) error 
 	return nil
 }
 
+// Render creates the application data at dst
 func (k *Bundler) Render(dst string) error {
 	return fs.WalkDir(
 		assets,
@@ -150,6 +162,7 @@ func (k *Bundler) Render(dst string) error {
 			buf := bytes.NewBufferString("")
 
 			filename := filepath.Base(path)
+			// Drop '.template' from name
 			filename = strings.ReplaceAll(filename, ".template", "")
 			dir := filepath.Dir(path)
 
@@ -167,6 +180,7 @@ func (k *Bundler) Render(dst string) error {
 	)
 }
 
+// DownloadImage downloads a container image locally.
 func (k *Bundler) DownloadImage(image, dst string, local bool) error {
 	os.MkdirAll(dst, os.ModePerm)
 	ref, err := name.ParseReference(image)
