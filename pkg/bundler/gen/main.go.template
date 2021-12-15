@@ -25,8 +25,8 @@ import (
 // - go:generate {{.CommandPrefix}} tar -cJvf assets.tar.xz -C assets/ .
 // - go:generate {{.CommandPrefix}} chmod 655 assets.tar.xz
 //go:generate {{.CommandPrefix}} poco unpack {{if .LocalBuild }}--local {{ end }} {{.Image}} assets
-//go:generate {{.CommandPrefix}} poco pack-assets -C assets .
-//go:embed assets.tar.xz
+//go:generate {{.CommandPrefix}} poco pack-assets --compression {{.Compression}} -C assets .
+//go:embed assets.tar.{{.Compression}}
 var assets embed.FS
 
 func common() []cli.Flag {
@@ -360,10 +360,10 @@ func start(c *cli.Context) error {
 }
 
 func copyBinary(state string) {
-	f, err := assets.Open("assets.tar.xz")
+	f, err := assets.Open("assets.tar.{{.Compression}}")
 	must(err)
-	must(copyFileContents(f, filepath.Join(state, "assets.tar.xz")))
-	must(archiver.Unarchive(filepath.Join(state, "assets.tar.xz"), filepath.Join(state, "bundle")))
+	must(copyFileContents(f, filepath.Join(state, "assets.tar.{{.Compression}}")))
+	must(archiver.Unarchive(filepath.Join(state, "assets.tar.{{.Compression}}"), filepath.Join(state, "bundle")))
 }
 
 func copyFileContents(in fs.File, dst string) (err error) {

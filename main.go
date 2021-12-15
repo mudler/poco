@@ -95,19 +95,33 @@ func pocoVersion() string {
 }
 
 func cliParse(c *cli.Context) *bundler.Bundler {
-	return bundler.New(
-		bundler.WithRenderData(c.String("image"), c.String("command-prefix"), c.Bool("local"), bundler.App{
-			Name:        c.String("app-name"),
-			Author:      c.String("app-author"),
-			Version:     c.String("app-version"),
-			Entrypoint:  c.String("entrypoint"),
-			Mounts:      c.StringSlice("app-mounts"),
-			Copyright:   c.String("app-copyright"),
-			Description: c.String("app-description"),
-			Store:       c.String("app-store"),
-			PocoVersion: pocoVersion(),
-		}),
-	)
+	opts := []bundler.Option{
+		bundler.WithRenderData(
+			c.String("image"),
+			c.String("command-prefix"),
+			c.Bool("local"),
+			bundler.App{
+				Name:        c.String("app-name"),
+				Author:      c.String("app-author"),
+				Version:     c.String("app-version"),
+				Entrypoint:  c.String("entrypoint"),
+				Mounts:      c.StringSlice("app-mounts"),
+				Copyright:   c.String("app-copyright"),
+				Description: c.String("app-description"),
+				Store:       c.String("app-store"),
+				PocoVersion: pocoVersion(),
+			},
+		),
+	}
+	compression := c.String("compression")
+	if compression != "" {
+		opts = append(opts, bundler.WithCompression(compression))
+	}
+	b, err := bundler.New(opts...)
+	if err != nil {
+		pterm.Fatal.Println(err)
+	}
+	return b
 }
 
 func main() {
@@ -235,6 +249,11 @@ $ docker push foo/image:tar ...
 						Value: "",
 					},
 					&cli.StringFlag{
+						Name:  "compression",
+						Usage: "Compression format",
+						Value: "xz",
+					},
+					&cli.StringFlag{
 						Name:  "destination",
 						Usage: "Destination",
 						Value: "assets",
@@ -264,10 +283,11 @@ $ docker push foo/image:tar ...
 						strings.Join(src, " "),
 					)
 
+					compressionType := c.String("compression")
 					if path.Ext(dst) == "" {
-						dst = fmt.Sprintf("%s.tar.xz", dst)
+						dst = fmt.Sprintf("%s.tar.%s", dst, compressionType)
 					} else {
-						dst = fmt.Sprintf("%s.tar.xz", strings.ReplaceAll(dst, path.Ext(dst), ""))
+						dst = fmt.Sprintf("%s.tar.%s", strings.ReplaceAll(dst, path.Ext(dst), ""), compressionType)
 					}
 
 					var cwd string
@@ -301,7 +321,14 @@ $ docker push foo/image:tar ...
 				},
 			},
 			{
-				Flags:     common(),
+				Flags: append(
+					common(),
+					&cli.StringFlag{
+						Name:  "compression",
+						Usage: "Compression format",
+						Value: "xz",
+					},
+				),
 				Name:      "bundle",
 				Aliases:   []string{"b"},
 				UsageText: "bundle --image <IMAGE> --entrypoint /bin/sh",

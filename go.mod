@@ -12,7 +12,7 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/pterm/pterm v0.12.33
 	github.com/urfave/cli v1.22.5
-	golang.org/x/sys v0.0.0-20211110154304-99a53858aa08
+	golang.org/x/sys v0.0.0-20211110154304-99a53858aa08 // indirect
 )
 
 require (

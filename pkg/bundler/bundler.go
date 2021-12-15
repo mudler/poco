@@ -21,6 +21,7 @@ import (
 	"github.com/google/go-containerregistry/pkg/v1/daemon"
 	"github.com/google/go-containerregistry/pkg/v1/mutate"
 	"github.com/google/go-containerregistry/pkg/v1/remote"
+	"github.com/mholt/archiver/v3"
 	"github.com/otiai10/copy"
 	"github.com/pkg/errors"
 )
@@ -45,6 +46,7 @@ type bundleData struct {
 	LocalBuild    bool
 	App           App
 	CommandPrefix string
+	Compression   string
 }
 
 // Bundler is the poCo application
@@ -62,6 +64,19 @@ func WithStateDir(s string) Option {
 	}
 }
 
+// WithCompression sets the bundle compression algorithm
+func WithCompression(c string) Option {
+	return func(k *Bundler) error {
+		_, err := archiver.ByExtension(fmt.Sprintf(".tar.%s", c))
+		if err != nil {
+			return err
+		}
+
+		k.renderData.Compression = c
+		return nil
+	}
+}
+
 // WithRenderData sets the data to be rendered when creating the application bundle
 func WithRenderData(image, commandprefix string, localbuild bool, a App) Option {
 	return func(k *Bundler) error {
@@ -74,12 +89,18 @@ func WithRenderData(image, commandprefix string, localbuild bool, a App) Option 
 type Option func(k *Bundler) error
 
 // New instantiate a new bundler with the given options
-func New(o ...Option) *Bundler {
-	k := &Bundler{}
-	for _, oo := range o {
-		oo(k)
+func New(o ...Option) (*Bundler, error) {
+	k := &Bundler{
+		renderData: bundleData{
+			Compression: "xz",
+		},
 	}
-	return k
+	for _, oo := range o {
+		if err := oo(k); err != nil {
+			return nil, err
+		}
+	}
+	return k, nil
 }
 
 // Build creates a new binary located at dst
