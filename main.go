@@ -289,16 +289,17 @@ $ docker push foo/image:tar ...
 					}
 					dst := c.String("destination")
 					src := c.Args()
+					compressionType := c.String("compression")
 
 					changeDir := c.String("C")
 
 					pterm.Info.Printfln(
-						"Creating '%s' from '%s'",
+						"Creating '%s' from '%s', %s compression",
 						dst,
 						strings.Join(src, " "),
+						compressionType,
 					)
 
-					compressionType := c.String("compression")
 					if path.Ext(dst) == "" {
 						dst = fmt.Sprintf("%s.tar.%s", dst, compressionType)
 					} else {
