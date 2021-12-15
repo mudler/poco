@@ -92,7 +92,7 @@ type Option func(k *Bundler) error
 func New(o ...Option) (*Bundler, error) {
 	k := &Bundler{
 		renderData: bundleData{
-			Compression: "xz",
+			Compression: "zst",
 		},
 	}
 	for _, oo := range o {

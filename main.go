@@ -251,7 +251,7 @@ $ docker push foo/image:tar ...
 					&cli.StringFlag{
 						Name:  "compression",
 						Usage: "Compression format",
-						Value: "xz",
+						Value: "zst",
 					},
 					&cli.StringFlag{
 						Name:  "destination",
@@ -326,7 +326,7 @@ $ docker push foo/image:tar ...
 					&cli.StringFlag{
 						Name:  "compression",
 						Usage: "Compression format",
-						Value: "xz",
+						Value: "zst",
 					},
 				),
 				Name:      "bundle",
