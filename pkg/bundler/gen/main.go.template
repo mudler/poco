@@ -46,6 +46,10 @@ var assets embed.FS
 
 func common() []cli.Flag {
 	return []cli.Flag{
+		&cli.BoolTFlag{
+			Name: "continue-on-error",
+			Usage: "Keep going if extracting some files fails (e.g. due to permission error)",
+		},
 		&cli.StringFlag{
 			Name: "store",
 			Value: "{{.App.Store}}",
@@ -316,9 +320,15 @@ func start(c *cli.Context) error {
 	}
 
 	if version != "{{.App.Version}}" {
-		fmt.Printf("Extracting {{.App.Name}} {{.App.Version}} bundle data into %s ...\n", store)
+		fmt.Printf("Extracting {{.App.Name}} {{.App.Version}} bundle data ({{.Compression}}) into %s ...\n", store)
 		os.RemoveAll(path.Join(store, "bundle"))
-		copyBinary(store)
+		err := copyBinary(store, c.Bool("continue-on-error"))
+		if err != nil {
+			if !c.Bool("continue-on-error") {
+				must(err)
+			}
+			fmt.Println("Failed copying binaries:", err.Error())
+		}
 		must(ioutil.WriteFile(path.Join(store, "VERSION"), []byte("{{.App.Version}}"), os.ModePerm))
 	}
 
@@ -374,11 +384,54 @@ func start(c *cli.Context) error {
 	return cmd.Run()
 }
 
-func copyBinary(state string) {
-	f, err := assets.Open("assets.tar.{{.Compression}}")
-	must(err)
-	must(copyFileContents(f, filepath.Join(state, "assets.tar.{{.Compression}}")))
-	must(archiver.Unarchive(filepath.Join(state, "assets.tar.{{.Compression}}"), filepath.Join(state, "bundle")))
+func copyBinary(state string, continueOnError bool) error {
+	source := "assets.tar.{{.Compression}}"
+
+	f, err := assets.Open(source)	
+	if err != nil {
+		return err
+	}
+
+	if err := copyFileContents(f, filepath.Join(state, source)); err != nil {
+		return err
+	}
+
+	uaIface, err := archiver.ByExtension(source)
+	if err != nil {
+		return err
+	}
+
+	un, ok := uaIface.(archiver.Unarchiver)
+	if !ok {
+		return fmt.Errorf("format specified by source filename is not an archive format: %s (%T)", source, uaIface)
+	}
+
+	mytar := &archiver.Tar{
+		OverwriteExisting:      true,
+		MkdirAll:               true,
+		ImplicitTopLevelFolder: false,
+		ContinueOnError:        continueOnError,
+	}
+
+	switch v := uaIface.(type) {
+	case *archiver.Tar:
+		uaIface = mytar
+	case *archiver.TarBrotli:
+		v.Tar = mytar
+	case *archiver.TarBz2:
+		v.Tar = mytar
+	case *archiver.TarGz:
+		v.Tar = mytar
+	case *archiver.TarLz4:
+		v.Tar = mytar
+	case *archiver.TarSz:
+		v.Tar = mytar
+	case *archiver.TarXz:
+		v.Tar = mytar
+	case *archiver.TarZstd:
+		v.Tar = mytar
+	}
+	return un.Unarchive(filepath.Join(state, "assets.tar.{{.Compression}}"), filepath.Join(state, "bundle"))
 }
 
 func copyFileContents(in fs.File, dst string) (err error) {
