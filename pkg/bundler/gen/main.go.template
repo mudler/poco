@@ -225,7 +225,7 @@ func mountBind(hostfolder, newroot, dst string, rw bool) error {
 }
 
 func uninstall(c *cli.Context) error {
-	store := storeParse(c.String("store"))
+	store := renderString(c.String("store"))
 	if store != "" {
 		return os.RemoveAll(store)
 	}
@@ -261,6 +261,10 @@ func execute(c *cli.Context) error {
 			}
 		}
 		fmt.Printf("Mounting %s to %s %s (rw: %t)\n", hostMount, store, target, rw)
+		if _, err:= os.Stat(hostMount); err != nil {
+			fmt.Printf("%s doesn't exist, creating it\n", hostMount)
+			os.MkdirAll(hostMount, 0700)
+		}
 		if err := mountBind(hostMount, store, target, rw); err != nil {
 			return errors.Wrap(err, fmt.Sprintf("Failed mounting %s on rootfs", hostMount))
 		}
@@ -284,7 +288,7 @@ func execute(c *cli.Context) error {
 	return cmd.Run()
 }
 
-func storeParse(s string) string {
+func renderString(s string) string {
 	// support $HOME passed as store
 	home, _ := os.UserHomeDir()
 	s = strings.ReplaceAll(s, "$HOME", home)
@@ -292,7 +296,7 @@ func storeParse(s string) string {
 }
 
 func start(c *cli.Context) error {
-	store := storeParse(c.String("store"))
+	store := renderString(c.String("store"))
 
 	// Setup store, used by the real process later on
 	if store == "" {
@@ -335,6 +339,7 @@ func start(c *cli.Context) error {
 	var mounts []string
 
 	for _, m := range append(c.StringSlice("mounts"), c.StringSlice("add-mounts")...) {
+		m := renderString(m)
 		mounts = append(mounts, []string{"--mounts", m}...)
 	}
 

@@ -199,6 +199,7 @@ Render golang generated files to the supplied dir
 						"Downloading image '%s' and unpacking into '%s' (local daemon: %t)",
 						src, dst, c.Bool("local"),
 					)
+
 					return k.DownloadImage(src, dst, c.Bool("local"))
 				},
 			},
