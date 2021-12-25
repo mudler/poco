@@ -51,6 +51,7 @@ type App struct {
 	Description string
 	Entrypoint  string
 	Mounts      []string
+	Attrs       []string
 	Store       string
 	PocoVersion string
 }

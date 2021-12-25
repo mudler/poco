@@ -88,6 +88,12 @@ func common() []cli.Flag {
 			EnvVar: "MOUNTS",
 		},
 		&cli.StringSliceFlag{
+			Name:   "app-attrs",
+			Usage:  "Define a list of default application attrs. Example: ipc, net, user",
+			EnvVar: "ATTRS",
+			Value:  &cli.StringSlice{"ipc", "uts", "user", "ns", "pid"},
+		},
+		&cli.StringSliceFlag{
 			Name:   "app-store",
 			Usage:  "Define a default application store where the bundle content will be uncompressed. It defaults to a temporary directory otherwise. (e.g. $HOME/.app/foo)",
 			EnvVar: "STORE",
@@ -121,6 +127,7 @@ func cliParse(c *cli.Context) *bundler.Bundler {
 				Version:     c.String("app-version"),
 				Entrypoint:  c.String("entrypoint"),
 				Mounts:      c.StringSlice("app-mounts"),
+				Attrs:       c.StringSlice("app-attrs"),
 				Copyright:   c.String("app-copyright"),
 				Description: c.String("app-description"),
 				Store:       c.String("app-store"),

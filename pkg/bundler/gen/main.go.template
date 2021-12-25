@@ -55,6 +55,13 @@ func common() []cli.Flag {
 			Value: "{{.App.Store}}",
 			Usage: "Default application store. Empty for TMPDIR",
 		},
+		&cli.StringSliceFlag{
+			Name: "attrs",
+			{{ if .App.Attrs }}
+			Value: &cli.StringSlice{"{{.App.Attrs | join "\",\"" }}"},
+			{{ end }}
+			Usage: "Default application sys proc attrs.",
+		},
 		&cli.StringFlag{
 			Name:  "entrypoint",
 			Value: "{{.App.Entrypoint}}",
@@ -360,12 +367,26 @@ func start(c *cli.Context) error {
 		)...,
 	)
 
+	var cloneFlags uintptr
+	for _, a := range c.StringSlice("attrs") {
+		switch strings.ToLower(a) {
+			case "ns":
+				cloneFlags |= syscall.CLONE_NEWNS
+			case "uts":
+				cloneFlags |= syscall.CLONE_NEWUTS
+			case "ipc":
+				cloneFlags |= syscall.CLONE_NEWIPC
+			case "pid":
+				cloneFlags |= syscall.CLONE_NEWPID
+			case "net":
+				cloneFlags |= syscall.CLONE_NEWNET
+			case "user":
+				cloneFlags |= syscall.CLONE_NEWUSER
+		}
+	}
+
 	cmd.SysProcAttr = &syscall.SysProcAttr{
-		Cloneflags: syscall.CLONE_NEWNS |
-			syscall.CLONE_NEWUTS |
-			syscall.CLONE_NEWIPC |
-			syscall.CLONE_NEWPID |
-			syscall.CLONE_NEWUSER,
+		Cloneflags: cloneFlags,
 		UidMappings: []syscall.SysProcIDMap{
 			{
 				ContainerID: 0,
