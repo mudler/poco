@@ -50,6 +50,10 @@ func common() []cli.Flag {
 			Name: "continue-on-error",
 			Usage: "Keep going if extracting some files fails (e.g. due to permission error)",
 		},
+		{{ if .App.ExtractOnly }} &cli.BoolTFlag{ {{ else }} &cli.BoolFlag{ {{ end }}
+			Name: "extract-only",
+			Usage: "Extract only, don't execute the entrypoint",
+		},
 		&cli.StringFlag{
 			Name: "store",
 			Value: "{{.App.Store}}",
@@ -333,7 +337,7 @@ func start(c *cli.Context) error {
 	if version != "{{.App.Version}}" {
 		fmt.Printf("Extracting {{.App.Name}} {{.App.Version}} bundle data ({{.Compression}}) into %s ...\n", store)
 		os.RemoveAll(path.Join(store, "bundle"))
-		err := copyBinary(store, c.Bool("continue-on-error"))
+		err := copyBinary(store, filepath.Join(store, "bundle"), c.Bool("continue-on-error"))
 		if err != nil {
 			if !c.Bool("continue-on-error") {
 				must(err)
@@ -348,6 +352,10 @@ func start(c *cli.Context) error {
 	for _, m := range append(c.StringSlice("mounts"), c.StringSlice("add-mounts")...) {
 		m := renderString(m)
 		mounts = append(mounts, []string{"--mounts", m}...)
+	}
+
+	if c.Bool("extract-only") {
+		return nil
 	}
 
 	// TODO: Custom default args injected from bundler
@@ -410,7 +418,7 @@ func start(c *cli.Context) error {
 	return cmd.Run()
 }
 
-func copyBinary(state string, continueOnError bool) error {
+func copyBinary(state, dst string, continueOnError bool) error {
 	source := "assets.tar.{{.Compression}}"
 
 	f, err := assets.Open(source)	
@@ -457,7 +465,7 @@ func copyBinary(state string, continueOnError bool) error {
 	case *archiver.TarZstd:
 		v.Tar = mytar
 	}
-	return un.Unarchive(filepath.Join(state, "assets.tar.{{.Compression}}"), filepath.Join(state, "bundle"))
+	return un.Unarchive(filepath.Join(state, "assets.tar.{{.Compression}}"), dst)
 }
 
 func copyFileContents(in fs.File, dst string) (err error) {

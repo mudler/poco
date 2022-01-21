@@ -66,6 +66,11 @@ func common() []cli.Flag {
 			EnvVar: "AUTHOR",
 			Value:  "sample",
 		},
+		&cli.BoolFlag{
+			Name:   "app-extract-only",
+			Usage:  "When enabled, the resulting binary will only extract its content",
+			EnvVar: "EXTRACT_ONLY",
+		},
 		&cli.StringFlag{
 			Name:   "app-name",
 			Usage:  "Application name",
@@ -132,6 +137,7 @@ func cliParse(c *cli.Context) *bundler.Bundler {
 				Description: c.String("app-description"),
 				Store:       c.String("app-store"),
 				PocoVersion: pocoVersion(),
+				ExtractOnly: c.Bool("app-extract-only"),
 			},
 		),
 	}

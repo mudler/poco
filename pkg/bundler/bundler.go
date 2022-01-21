@@ -54,6 +54,7 @@ type App struct {
 	Attrs       []string
 	Store       string
 	PocoVersion string
+	ExtractOnly bool
 }
 
 // bundleData is the parent structure which is used by the template
