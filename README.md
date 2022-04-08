@@ -109,6 +109,10 @@ Supports: `CGO_ENABLED`, `GOOS`, `GOARCH`, etc.
 
 It can target all architectures supported by golang. 
 
+### Github Action
+
+To run it with Github actions, see [https://github.com/mudler/poco-github-action](https://github.com/mudler/poco-github-action)
+
 ### `bundle`
 
 `bundle` creates a binary from a container image, it takes several options listed here:
