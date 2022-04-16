@@ -190,6 +190,17 @@ $ docker load -i output.tar
 $ docker push myimage:tag
 ```
 
+### `extract`
+
+`extract` is an internal utility to scan a binary and all its dynamic linked libraries. It will copy the binary and the libraries needed by it into the specified folder, respecting the path hierarchy.
+
+```
+$ poco extract /my/dynamic/bin /output
+$ poco pack myimage:tag /output --destination image.tar
+$ docker load -i image.tar
+...
+```
+
 ### `pack-assets`
 
 `pack-assets` is an internal utility to pack assets for the bundle.

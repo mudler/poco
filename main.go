@@ -28,6 +28,7 @@ import (
 	"github.com/mudler/luet/pkg/api/core/image"
 	"github.com/mudler/poco/internal"
 	"github.com/mudler/poco/pkg/bundler"
+	"github.com/mudler/poco/pkg/extractor"
 	"github.com/otiai10/copy"
 	"github.com/pterm/pterm"
 	"github.com/urfave/cli"
@@ -190,6 +191,17 @@ Render golang generated files to the supplied dir
 					pterm.Info.Println("Rendering in", c.Args().First())
 					k.Render(c.Args().First())
 					return nil
+				},
+			},
+			{
+				Name:      "extract",
+				Aliases:   []string{"e"},
+				Usage:     "extract a binary and its libraries into a folder",
+				UsageText: "extract <BIN> <DIR>",
+				Action: func(c *cli.Context) error {
+					src := c.Args()[0]
+					dst := c.Args()[1]
+					return extractor.Extract(extractor.WithFiles(src), extractor.WithOutputDir(dst))
 				},
 			},
 			{
