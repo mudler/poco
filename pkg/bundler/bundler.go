@@ -38,6 +38,7 @@ import (
 	"github.com/google/go-containerregistry/pkg/v1/remote"
 	"github.com/mholt/archiver/v3"
 	"github.com/otiai10/copy"
+	cp "github.com/otiai10/copy"
 	"github.com/pkg/errors"
 )
 
@@ -63,6 +64,7 @@ type bundleData struct {
 	App           App
 	CommandPrefix string
 	Compression   string
+	UnpackImage   bool
 }
 
 // Bundler is the poCo application
@@ -70,12 +72,21 @@ type bundleData struct {
 type Bundler struct {
 	stateDir   string
 	renderData bundleData
+	directory  string
 }
 
 // WithStateDir sets the bundler application state directory
 func WithStateDir(s string) Option {
 	return func(k *Bundler) error {
 		k.stateDir = s
+		return nil
+	}
+}
+
+// WithDirectory sets the bundler input dir to bundle
+func WithDirectory(s string) Option {
+	return func(k *Bundler) error {
+		k.directory = s
 		return nil
 	}
 }
@@ -94,9 +105,9 @@ func WithCompression(c string) Option {
 }
 
 // WithRenderData sets the data to be rendered when creating the application bundle
-func WithRenderData(image, commandprefix string, localbuild bool, a App) Option {
+func WithRenderData(image, commandprefix string, localbuild, unpackImage bool, a App) Option {
 	return func(k *Bundler) error {
-		k.renderData = bundleData{Image: image, LocalBuild: localbuild, CommandPrefix: commandprefix, App: a}
+		k.renderData = bundleData{Image: image, LocalBuild: localbuild, CommandPrefix: commandprefix, App: a, UnpackImage: unpackImage}
 		return nil
 	}
 }
@@ -180,6 +191,12 @@ func (k *Bundler) goBuild(rendered string, binary string, args ...string) error 
 
 // Render creates the application data at dst
 func (k *Bundler) Render(dst string) error {
+	if k.directory != "" {
+		err := cp.Copy(k.directory, filepath.Join(dst, "assets"))
+		if err != nil {
+			return err
+		}
+	}
 	return fs.WalkDir(
 		assets,
 		".",

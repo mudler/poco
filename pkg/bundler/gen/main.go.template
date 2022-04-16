@@ -39,7 +39,9 @@ import (
 // - Alternatively
 // - go:generate {{.CommandPrefix}} tar -cJvf assets.tar.xz -C assets/ .
 // - go:generate {{.CommandPrefix}} chmod 655 assets.tar.xz
+{{ if .UnpackImage }}
 //go:generate {{.CommandPrefix}} poco unpack {{if .LocalBuild }}--local {{ end }} {{.Image}} assets
+{{ end }}
 //go:generate {{.CommandPrefix}} poco pack-assets --compression {{.Compression}} -C assets .
 //go:embed assets.tar.{{.Compression}}
 var assets embed.FS

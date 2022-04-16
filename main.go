@@ -39,15 +39,21 @@ func common() []cli.Flag {
 	return []cli.Flag{
 		&cli.StringFlag{
 			Name:   "entrypoint",
-			EnvVar: "",
+			EnvVar: "ENTRYPOINT",
 			Usage:  "Default binary entrypoint. This is the first binary from the container image which will be executed.",
 			Value:  "/bin/sh",
 		},
 		&cli.StringFlag{
 			Name:   "output",
 			Usage:  "Default binary output location",
-			EnvVar: "",
+			EnvVar: "OUTPUT",
 			Value:  "sample",
+		},
+		&cli.StringFlag{
+			Name:   "directory",
+			Usage:  "Directory to pack",
+			EnvVar: "DIRECTORY",
+			Value:  "",
 		},
 		&cli.StringFlag{
 			Name:   "app-description",
@@ -80,8 +86,9 @@ func common() []cli.Flag {
 			Value:  "0.1",
 		},
 		&cli.BoolFlag{
-			Name:  "local",
-			Usage: "Use local docker daemon to retrieve the image",
+			Name:   "local",
+			EnvVar: "LOCAL",
+			Usage:  "Use local docker daemon to retrieve the image",
 		},
 		&cli.StringSliceFlag{
 			Name:   "app-mounts",
@@ -100,14 +107,16 @@ func common() []cli.Flag {
 			EnvVar: "STORE",
 		},
 		&cli.StringFlag{
-			Usage: "Image to be used as bundle content",
-			Name:  "image",
-			Value: "alpine",
+			Usage:  "Image to be used as bundle content",
+			Name:   "image",
+			EnvVar: "IMAGE",
+			Value:  "alpine",
 		},
 		&cli.StringFlag{
-			Name:  "command-prefix",
-			Value: "sudo",
-			Usage: "Prefix go generate commands with sudo. This is required if not running bundler as root and want to preserve container permissions",
+			Name:   "command-prefix",
+			EnvVar: "COMMAND_PREFIX",
+			Value:  "sudo",
+			Usage:  "Prefix go generate commands with sudo. This is required if not running bundler as root and want to preserve container permissions",
 		},
 	}
 }
@@ -122,6 +131,7 @@ func cliParse(c *cli.Context) *bundler.Bundler {
 			c.String("image"),
 			c.String("command-prefix"),
 			c.Bool("local"),
+			c.String("directory") == "",
 			bundler.App{
 				Name:        c.String("app-name"),
 				Author:      c.String("app-author"),
@@ -135,11 +145,15 @@ func cliParse(c *cli.Context) *bundler.Bundler {
 				PocoVersion: pocoVersion(),
 			},
 		),
+		bundler.WithDirectory(c.String("directory")),
 	}
+
 	compression := c.String("compression")
-	if compression != "" {
-		opts = append(opts, bundler.WithCompression(compression))
+	if compression == "" {
+		compression = "xz"
 	}
+	opts = append(opts, bundler.WithCompression(compression))
+
 	b, err := bundler.New(opts...)
 	if err != nil {
 		pterm.Fatal.Println(err)
@@ -381,6 +395,7 @@ It also associates to automatically mount /sys, /tmp and /run by default when st
 				`,
 				Action: func(c *cli.Context) (err error) {
 					k := cliParse(c)
+
 					pterm.Info.Printfln(
 						"Creating bundle '%s' (version %s) from image '%s' with entrypoint '%s'",
 						c.String("app-name"),

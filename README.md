@@ -131,6 +131,7 @@ To run it with Github actions, see [https://github.com/mudler/poco-github-action
 | --app-store       | A default store for your app. This is where the bundle gets extracted before being executed, and where the real app data lives afterward on subsequent calls.                                          |
 | --image           | The container image to bundle.                                                                                                                                                                         |
 | --command-prefix  | Command prefix for auto-generated code. Usually you don't need to change that unless you are running the builds as root                                                                                |
+| --directory          | A directory to bundle (in place of the container image)                                                                                                                                                                         |
 
 #### Mounts
 
@@ -223,6 +224,7 @@ $ mkdir alpine
 $ poco unpack alpine alpine
 $ ls alpine
 bin etc usr ...
+$ poco bundle --directory alpine ...
 ```
 
 ## :notebook: Troubleshooting
